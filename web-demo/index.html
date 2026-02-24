@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rhea Bridge Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0f0f1a;
+        color: #e5e7eb;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 24px;
+      }
+
+      .env-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+      .env-badge.native {
+        background: #065f46;
+        color: #34d399;
+      }
+      .env-badge.browser {
+        background: #92400e;
+        color: #fbbf24;
+      }
+
+      .section {
+        margin-bottom: 24px;
+      }
+
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #2d2d44;
+      }
+
+      .card {
+        background: #1a1a2e;
+        border: 1px solid #2d2d44;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+
+      .card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .card-desc {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .btn:active {
+        opacity: 0.7;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+      }
+
+      .btn-secondary {
+        background: #2d2d44;
+        color: #e5e7eb;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: #fff;
+      }
+
+      .code-block {
+        background: #0d0d17;
+        border: 1px solid #2d2d44;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 8px;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 12px;
+        color: #a78bfa;
+        overflow-x: auto;
+        white-space: pre;
+        line-height: 1.6;
+      }
+
+      /* 浏览器模拟 Modal */
+      .sim-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 200;
+        justify-content: flex-end;
+      }
+      .sim-overlay.show {
+        display: flex;
+      }
+      .sim-modal {
+        background: #1a1a2e;
+        border-radius: 20px 20px 0 0;
+        width: 100%;
+        max-height: 75vh;
+        padding: 8px 16px 24px;
+        animation: slideUp 0.3s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+      .sim-handle {
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: #4a4a6a;
+        margin: 0 auto 12px;
+      }
+      .sim-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #2d2d44;
+        margin-bottom: 16px;
+      }
+      .sim-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .sim-close {
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        background: #2d2d44;
+        border: none;
+        color: #9ca3af;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sim-content {
+        color: #e5e7eb;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .sim-data-card {
+        background: #0d0d17;
+        border: 1px solid #2d2d44;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+      .sim-data-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #1a1a2e;
+      }
+      .sim-data-row:last-child {
+        border-bottom: none;
+      }
+      .sim-data-key {
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .sim-data-val {
+        color: #a78bfa;
+        font-size: 13px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔗 Rhea Bridge Demo</h1>
+    <p class="subtitle">Web ↔ Native 通信调用示例</p>
+    <div id="env-badge" class="env-badge browser">
+      🌐 浏览器环境（模拟模式）
+    </div>
+
+    <!-- 1. 打开二级页面 -->
+    <div class="section">
+      <div class="section-title">📄 打开二级页面（Navigate）</div>
+
+      <div class="card">
+        <div class="card-title">自动读取页面标题</div>
+        <div class="card-desc">
+          不传 title 参数，RN 端会使用当前 document.title 作为导航栏标题
+        </div>
+        <button class="btn btn-primary" onclick="demoNavigateAuto()">
+          打开二级页面（自动标题）
+        </button>
+        <div class="code-block">RheaBridge.navigate('https://x.rhea.finance/supply/usdc')</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">指定自定义标题</div>
+        <div class="card-desc">传入 title 参数，RN 端使用该标题</div>
+        <button class="btn btn-primary" onclick="demoNavigateCustom()">
+          打开二级页面（自定义标题）
+        </button>
+        <div class="code-block">RheaBridge.navigate(
+  'https://x.rhea.finance/supply/usdc',
+  'Supply USDC'
+)</div>
+      </div>
+    </div>
+
+    <!-- 2. 打开 Modal -->
+    <div class="section">
+      <div class="section-title">📦 打开底部 Modal（OpenModal）</div>
+
+      <div class="card">
+        <div class="card-title">加载 URL 内容</div>
+        <div class="card-desc">Modal 内嵌 WebView 加载指定 URL</div>
+        <button class="btn btn-primary" onclick="demoModalUrl()">
+          打开 Modal（URL）
+        </button>
+        <div class="code-block">RheaBridge.openModal({
+  title: 'Supply USDC',
+  url: 'https://x.rhea.finance/modal/supply'
+})</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">传递数据对象</div>
+        <div class="card-desc">
+          将 token 信息、APY 等业务数据传递给 Modal 内的页面
+        </div>
+        <button class="btn btn-primary" onclick="demoModalData()">
+          打开 Modal（携带数据）
+        </button>
+        <div class="code-block">RheaBridge.openModal({
+  title: 'Supply Details',
+  url: 'modal-content.html',
+  data: {
+    token: 'USDC',
+    apy: '5.2%',
+    tvl: '$12.5M',
+    chain: 'Ethereum'
+  }
+})</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">仅传数据（无 URL）</div>
+        <div class="card-desc">
+          只传 data，不传 url。RN 端可自行决定如何渲染内容
+        </div>
+        <button class="btn btn-secondary" onclick="demoModalDataOnly()">
+          打开 Modal（仅数据）
+        </button>
+        <div class="code-block">RheaBridge.openModal({
+  title: 'Token Info',
+  data: {
+    token: 'ETH',
+    price: '$3,200',
+    change: '+2.5%'
+  }
+})</div>
+      </div>
+    </div>
+
+    <!-- 3. 关闭 Modal -->
+    <div class="section">
+      <div class="section-title">✖️ 关闭 Modal（CloseModal）</div>
+
+      <div class="card">
+        <div class="card-title">程序化关闭</div>
+        <div class="card-desc">
+          在 Modal 内的页面中，调用此方法可以主动关闭 Modal
+        </div>
+        <button class="btn btn-danger" onclick="demoCloseModal()">
+          关闭 Modal
+        </button>
+        <div class="code-block">RheaBridge.closeModal()</div>
+      </div>
+    </div>
+
+    <!-- 4. 完整流程 -->
+    <div class="section">
+      <div class="section-title">🚀 完整对接代码参考</div>
+      <div class="card">
+        <div class="card-title">在你的 Web 页面中使用</div>
+        <div class="code-block">&lt;script&gt;
+
+// Bridge 注入极快，通常页面加载后即可直接调用
+function onSupplyClick(token) {
+  RheaBridge.openModal({
+    title: 'Supply ' + token.symbol,
+    url: '/modal/supply?token=' + token.address,
+    data: token
+  });
+}
+
+&lt;/script&gt;</div>
+      </div>
+    </div>
+
+    <!-- 模拟 Modal -->
+    <div id="sim-overlay" class="sim-overlay" onclick="closeSimModal(event)">
+      <div class="sim-modal" onclick="event.stopPropagation()">
+        <div class="sim-handle"></div>
+        <div class="sim-header">
+          <span class="sim-title" id="sim-title">Modal</span>
+          <button class="sim-close" onclick="closeSimModal()">✕</button>
+        </div>
+        <div class="sim-content" id="sim-content"></div>
+      </div>
+    </div>
+
+
+
+    <script>
+      // ===================== 环境检测 =====================
+      var isNative = !!(
+        window.ReactNativeWebView && window.ReactNativeWebView.postMessage
+      );
+      var badge = document.getElementById("env-badge");
+      if (isNative) {
+        badge.className = "env-badge native";
+        badge.textContent = "📱 RN WebView 环境（真实调用）";
+      }
+
+
+
+      // ===================== 模拟 Modal（浏览器模式） =====================
+      function showSimModal(title, content) {
+        document.getElementById("sim-title").textContent = title;
+        document.getElementById("sim-content").innerHTML = content;
+        document.getElementById("sim-overlay").classList.add("show");
+      }
+
+      function closeSimModal(e) {
+        if (e && e.target !== document.getElementById("sim-overlay")) return;
+        document.getElementById("sim-overlay").classList.remove("show");
+      }
+
+      function renderDataCard(data) {
+        var html = '<div class="sim-data-card">';
+        for (var key in data) {
+          html +=
+            '<div class="sim-data-row">' +
+            '<span class="sim-data-key">' +
+            key +
+            "</span>" +
+            '<span class="sim-data-val">' +
+            data[key] +
+            "</span>" +
+            "</div>";
+        }
+        html += "</div>";
+        return html;
+      }
+
+      // ===================== Bridge 封装（兼容浏览器） =====================
+      function bridgeCall(data) {
+        if (isNative) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(data));
+        } else {
+          simulateAction(data);
+        }
+      }
+
+      function simulateAction(data) {
+        switch (data.type) {
+          case "navigate":
+            showSimModal(
+              "📄 二级页面: " + (data.title || document.title),
+              '<p style="color:#6b7280;margin-bottom:12px">模拟打开二级页面</p>' +
+                '<p><strong>URL:</strong> <span style="color:#a78bfa">' +
+                data.url +
+                "</span></p>" +
+                '<p><strong>Title:</strong> <span style="color:#a78bfa">' +
+                (data.title || document.title) +
+                "</span></p>",
+            );
+            break;
+
+          case "openModal":
+            var content = "";
+            if (data.url) {
+              content +=
+                '<p style="color:#6b7280;margin-bottom:8px">Modal URL:</p>' +
+                '<p style="color:#a78bfa;margin-bottom:12px">' +
+                data.url +
+                "</p>";
+            }
+            if (data.data) {
+              content +=
+                '<p style="color:#6b7280;margin-bottom:8px">传入数据:</p>' +
+                renderDataCard(data.data);
+            }
+            if (!data.url && !data.data) {
+              content = '<p style="color:#6b7280">空 Modal</p>';
+            }
+            showSimModal(data.title, content);
+            break;
+
+          case "closeModal":
+            closeSimModal();
+            break;
+        }
+      }
+
+      // ===================== Demo 调用函数 =====================
+      function demoNavigateAuto() {
+        if (window.RheaBridge) {
+          RheaBridge.navigate("https://x.rhea.finance/supply/usdc");
+        } else {
+          bridgeCall({
+            type: "navigate",
+            url: "https://x.rhea.finance/supply/usdc",
+            title: document.title,
+          });
+        }
+      }
+
+      function demoNavigateCustom() {
+        if (window.RheaBridge) {
+          RheaBridge.navigate(
+            "https://x.rhea.finance/supply/usdc",
+            "Supply USDC",
+          );
+        } else {
+          bridgeCall({
+            type: "navigate",
+            url: "https://x.rhea.finance/supply/usdc",
+            title: "Supply USDC",
+          });
+        }
+      }
+
+      function demoModalUrl() {
+        if (window.RheaBridge) {
+          RheaBridge.openModal({
+            title: "Supply USDC",
+            url: "https://x.rhea.finance/modal/supply",
+          });
+        } else {
+          bridgeCall({
+            type: "openModal",
+            title: "Supply USDC",
+            url: "https://x.rhea.finance/modal/supply",
+          });
+        }
+      }
+
+      function demoModalData() {
+        var data = {
+          token: "USDC",
+          apy: "5.2%",
+          tvl: "$12.5M",
+          chain: "Ethereum",
+        };
+        if (window.RheaBridge) {
+          RheaBridge.openModal({
+            title: "Supply Details",
+            url: "modal-content.html",
+            data: data,
+          });
+        } else {
+          bridgeCall({
+            type: "openModal",
+            title: "Supply Details",
+            url: "modal-content.html",
+            data: data,
+          });
+        }
+      }
+
+      function demoModalDataOnly() {
+        var data = { token: "ETH", price: "$3,200", change: "+2.5%" };
+        if (window.RheaBridge) {
+          RheaBridge.openModal({
+            title: "Token Info",
+            data: data,
+          });
+        } else {
+          bridgeCall({
+            type: "openModal",
+            title: "Token Info",
+            data: data,
+          });
+        }
+      }
+
+      function demoCloseModal() {
+        if (window.RheaBridge) {
+          RheaBridge.closeModal();
+        } else {
+          bridgeCall({ type: "closeModal" });
+        }
+      }
+    </script>
+  </body>
+</html>
