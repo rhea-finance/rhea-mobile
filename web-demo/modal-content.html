@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,7 +130,7 @@
 </head>
 <body>
 
-  <div id="loading" class="status">正在加载数据...</div>
+  <div id="loading" class="status">Loading data...</div>
   <div id="content" style="display:none">
     <div class="token-header">
       <div class="token-icon" id="token-icon">U</div>
@@ -165,10 +165,10 @@
   </div>
 
 <script>
-  // 接收从 RN 传入的数据
-  // 在真实场景中，数据通过 URL query params 或 RheaBridge 传递
+  // Receive data passed from RN
+  // In real scenarios, data is passed via URL query params or RheaBridge
 
-  // 方式一：从 URL 参数读取
+  // Method 1: Read from URL query params
   function getUrlParams() {
     var params = {};
     var search = window.location.search.substring(1);
@@ -181,7 +181,7 @@
     return params;
   }
 
-  // 方式二：从 hash 中读取 JSON 数据（RN 端可将 data 编码后附到 URL hash）
+  // Method 2: Read JSON data from hash (RN can encode data and append to URL hash)
   function getHashData() {
     try {
       var hash = window.location.hash.substring(1);
@@ -190,11 +190,11 @@
     return null;
   }
 
-  // 初始化
+  // Initialize
   function init() {
     var data = getHashData() || getUrlParams();
 
-    // 有数据则展示，否则用默认值
+    // Display data if available, otherwise use defaults
     if (data.token) {
       document.getElementById('token-icon').textContent = data.token.charAt(0);
       document.getElementById('token-name').textContent = data.token;
@@ -217,7 +217,7 @@
   function handleSubmit() {
     var amount = document.getElementById('amount-input').value;
     alert('Supply ' + amount + ' ' + (document.getElementById('token-name').textContent));
-    // 调用 RheaBridge.closeModal() 关闭
+    // Call RheaBridge.closeModal() to close
     if (window.RheaBridge) {
       RheaBridge.closeModal();
     }
@@ -227,7 +227,7 @@
     if (window.RheaBridge) {
       RheaBridge.closeModal();
     } else {
-      // 浏览器环境下的 fallback
+      // Browser environment fallback
       window.close();
     }
   }

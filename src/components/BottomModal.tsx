@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -29,9 +29,11 @@ const BottomModal: React.FC<BottomModalProps> = ({
 }) => {
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  const [internalVisible, setInternalVisible] = useState(visible);
 
   useEffect(() => {
     if (visible) {
+      setInternalVisible(true);
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
@@ -56,20 +58,20 @@ const BottomModal: React.FC<BottomModalProps> = ({
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => setInternalVisible(false));
     }
   }, [visible, translateY, opacity]);
 
   return (
     <Modal
-      visible={visible}
+      visible={internalVisible}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={() => onClose()}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
+        <TouchableWithoutFeedback onPress={() => onClose()}>
           <Animated.View style={[styles.backdrop, { opacity }]} />
         </TouchableWithoutFeedback>
 
@@ -85,7 +87,7 @@ const BottomModal: React.FC<BottomModalProps> = ({
               </Text>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={onClose}
+                onPress={() => onClose()}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <Text style={styles.closeText}>✕</Text>

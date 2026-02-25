@@ -1,25 +1,9 @@
 import React from "react";
-import WebViewScreen from "../components/WebViewScreen";
-import BottomModal from "../components/BottomModal";
-import { useWebBridge } from "../hooks/useWebBridge";
-
-const BORROW_URL = "https://x.rhea.finance";
+import BaseTabScreen from "../components/BaseTabScreen";
+import { WEB_URLS } from "../config/urls";
 
 const BorrowScreen: React.FC = () => {
-  const { handleMessage, modalState, closeModal } = useWebBridge();
-
-  return (
-    <>
-      <WebViewScreen url={BORROW_URL} onMessage={handleMessage} />
-      <BottomModal
-        visible={modalState.visible}
-        title={modalState.title}
-        onClose={closeModal}
-      >
-        {modalState.url ? <WebViewScreen url={modalState.url} /> : null}
-      </BottomModal>
-    </>
-  );
+  return <BaseTabScreen url={WEB_URLS.BORROW} />;
 };
 
 export default BorrowScreen;

@@ -1,9 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
+import { DeviceEventEmitter } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTabBar } from "../contexts/TabBarContext";
+import type { WebViewScreenRef } from "../components/WebViewScreen";
 
 type StackParamList = {
-  Detail: { url: string; title: string };
+  Detail: { url: string; title: string; callbackId?: string };
   [key: string]: any;
 };
 
@@ -12,6 +15,8 @@ export interface ModalState {
   title: string;
   url: string;
   data: any;
+  callbackId: string;
+  hideTabBar?: boolean;
 }
 
 const initialModalState: ModalState = {
@@ -19,23 +24,70 @@ const initialModalState: ModalState = {
   title: "",
   url: "",
   data: null,
+  callbackId: "",
+  hideTabBar: false,
 };
 
 /**
- * 统一处理 WebView Bridge 消息的 Hook
+ * Hook for centrally handling WebView Bridge messages
  *
- * 支持的消息类型：
- * - { type: "navigate", url, title? }   → push 二级页面
- * - { type: "openModal", title, url?, data? } → 打开底部 Modal
- * - { type: "closeModal" }               → 关闭 Modal
+ * Supported message types:
+ * - navigate    → push secondary page (supports callbackId)
+ * - openModal   → open bottom Modal (supports callbackId)
+ * - closeModal  → close Modal
+ * - goBack      → go back and pass data to callback
+ * - setTabBarVisible → control TabBar visibility
+ * (refreshDone is handled inside WebViewScreen)
  */
 export function useWebBridge() {
   const navigation = useNavigation<NativeStackNavigationProp<StackParamList>>();
+  const { setTabBarVisible } = useTabBar();
   const [modalState, setModalState] = useState<ModalState>(initialModalState);
+  const webViewRef = useRef<WebViewScreenRef>(null);
 
-  const closeModal = useCallback(() => {
-    setModalState(initialModalState);
+  // Trigger Web callback
+  const invokeCallback = useCallback((callbackId: string, data?: any) => {
+    if (callbackId && webViewRef.current) {
+      const dataStr = JSON.stringify(data ?? null);
+      webViewRef.current.injectJavaScript(
+        `window.RheaBridge._invokeCallback('${callbackId}', ${dataStr}); true;`,
+      );
+    }
   }, []);
+
+  const closeModal = useCallback(
+    (resultData?: any) => {
+      const cbId = modalState.callbackId;
+      const hideTabBar = modalState.hideTabBar;
+
+      setModalState(initialModalState);
+
+      if (hideTabBar) {
+        setTabBarVisible(true);
+      }
+      if (cbId) {
+        invokeCallback(cbId, resultData);
+      }
+    },
+    [
+      modalState.callbackId,
+      modalState.hideTabBar,
+      invokeCallback,
+      setTabBarVisible,
+    ],
+  );
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "WEB_BRIDGE_CALLBACK",
+      (payload) => {
+        if (payload && payload.callbackId) {
+          invokeCallback(payload.callbackId, payload.data);
+        }
+      },
+    );
+    return () => subscription.remove();
+  }, [invokeCallback]);
 
   const handleMessage = useCallback(
     (data: any) => {
@@ -45,26 +97,47 @@ export function useWebBridge() {
             navigation.navigate("Detail", {
               url: data.url,
               title: data.title || "",
+              callbackId: data.callbackId || "",
             });
           }
           break;
 
         case "openModal":
+          if (data.hideTabBar) {
+            setTabBarVisible(false);
+          }
           setModalState({
             visible: true,
             title: data.title || "",
             url: data.url || "",
             data: data.data || null,
+            callbackId: data.callbackId || "",
+            hideTabBar: data.hideTabBar || false,
           });
           break;
 
+        case "goBack":
+          // Modal calls goBack → close Modal and trigger callback
+          closeModal(data.data);
+          break;
+
         case "closeModal":
-          closeModal();
+          closeModal(data.data);
+          break;
+
+        case "setTabBarVisible":
+          setTabBarVisible(data.visible);
           break;
       }
     },
-    [navigation, closeModal],
+    [navigation, closeModal, setTabBarVisible],
   );
 
-  return { handleMessage, modalState, closeModal };
+  return {
+    handleMessage,
+    modalState,
+    closeModal,
+    webViewRef,
+    invokeCallback,
+  };
 }

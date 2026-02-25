@@ -1,16 +1,18 @@
 import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Text, StyleSheet, Platform } from "react-native";
+import { Image, StyleSheet, Platform } from "react-native";
 
+import { TabBarProvider, useTabBar } from "../contexts/TabBarContext";
+import LaunchScreen from "../screens/LaunchScreen";
 import EarnScreen from "../screens/EarnScreen";
 import BorrowScreen from "../screens/BorrowScreen";
 import SwapScreen from "../screens/SwapScreen";
 import MyEarnScreen from "../screens/MyEarnScreen";
 import DetailScreen from "../screens/DetailScreen";
 
-type DetailParams = { url: string; title: string };
+type DetailParams = { url: string; title: string; callbackId?: string };
 
 type EarnStackParamList = {
   EarnMain: undefined;
@@ -40,10 +42,35 @@ const MyEarnStackNav = createNativeStackNavigator<MyEarnStackParamList>();
 const Tab = createBottomTabNavigator();
 
 const stackScreenOptions = {
-  headerStyle: { backgroundColor: "#0f0f1a" },
-  headerTintColor: "#ffffff",
-  headerTitleStyle: { fontWeight: "600" as const },
-  contentStyle: { backgroundColor: "#0f0f1a" },
+  headerStyle: { backgroundColor: "#ffffff" },
+  headerTintColor: "#111827",
+  headerTitleStyle: {
+    fontWeight: "600" as const,
+    fontSize: 17,
+  },
+  headerShadowVisible: false,
+  headerBackTitleVisible: false,
+  contentStyle: { backgroundColor: "#ffffff" },
+};
+
+// Tab Icon Mapping
+const TAB_ICONS: Record<string, { default: any; active: any }> = {
+  Earn: {
+    default: require("../../assets/tab-icons/earn.png"),
+    active: require("../../assets/tab-icons/earn-active.png"),
+  },
+  Borrow: {
+    default: require("../../assets/tab-icons/borrow.png"),
+    active: require("../../assets/tab-icons/borrow-active.png"),
+  },
+  Swap: {
+    default: require("../../assets/tab-icons/swap.png"),
+    active: require("../../assets/tab-icons/swap-active.png"),
+  },
+  My: {
+    default: require("../../assets/tab-icons/my.png"),
+    active: require("../../assets/tab-icons/my-active.png"),
+  },
 };
 
 function EarnStack() {
@@ -126,92 +153,117 @@ function MyEarnStack() {
   );
 }
 
-const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => (
-  <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-    {label === "Earn"
-      ? "\u{1F4B0}"
-      : label === "Borrow"
-        ? "\u{1F3E6}"
-        : label === "Swap"
-          ? "\u{1F504}"
-          : "\u{1F464}"}
-  </Text>
+const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => {
+  const icons = TAB_ICONS[label];
+  if (!icons) return null;
+  return (
+    <Image
+      source={focused ? icons.active : icons.default}
+      style={styles.tabIconImage}
+      resizeMode="contain"
+    />
+  );
+};
+
+function AppTabs() {
+  const { tabBarVisible } = useTabBar();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: [styles.tabBar, !tabBarVisible && styles.tabBarHidden],
+        tabBarActiveTintColor: "#1a1a2e",
+        tabBarInactiveTintColor: "#9ca3af",
+        tabBarLabelStyle: styles.tabBarLabel,
+        lazy: false,
+        freezeOnBlur: false,
+      }}
+    >
+      <Tab.Screen
+        name="Earn"
+        component={EarnStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Earn" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Borrow"
+        component={BorrowStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Borrow" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Swap"
+        component={SwapStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Swap" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="My"
+        component={MyEarnStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon label="My" focused={focused} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+const appTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "#ffffff",
+  },
+};
+
+const RootStack = createNativeStackNavigator();
+
+const RootNavigator = () => (
+  <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Screen name="Launch" component={LaunchScreen} />
+    <RootStack.Screen name="MainTabs" component={AppTabs} />
+  </RootStack.Navigator>
 );
 
 const AppNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: "#6366f1",
-          tabBarInactiveTintColor: "#6b7280",
-          tabBarLabelStyle: styles.tabBarLabel,
-          lazy: false,
-          freezeOnBlur: false,
-        }}
-      >
-        <Tab.Screen
-          name="Earn"
-          component={EarnStack}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label="Earn" focused={focused} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Borrow"
-          component={BorrowStack}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label="Borrow" focused={focused} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Swap"
-          component={SwapStack}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label="Swap" focused={focused} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="My"
-          component={MyEarnStack}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label="My" focused={focused} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <TabBarProvider>
+      <NavigationContainer theme={appTheme}>
+        <RootNavigator />
+      </NavigationContainer>
+    </TabBarProvider>
   );
 };
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: "#1a1a2e",
-    borderTopColor: "#2d2d44",
+    backgroundColor: "#ffffff",
+    borderTopColor: "#e5e7eb",
     borderTopWidth: 1,
     height: Platform.OS === "ios" ? 85 : 60,
     paddingBottom: Platform.OS === "ios" ? 25 : 8,
     paddingTop: 4,
   },
+  tabBarHidden: {
+    display: "none",
+  },
   tabBarLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "500",
   },
-  tabIcon: {
-    fontSize: 20,
-    opacity: 0.5,
-  },
-  tabIconFocused: {
-    opacity: 1,
+  tabIconImage: {
+    width: 24,
+    height: 24,
   },
 });
 
