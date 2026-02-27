@@ -81,14 +81,6 @@ function EarnStack() {
         component={EarnScreen}
         options={{ headerShown: false }}
       />
-      <EarnStackNav.Screen
-        name="Detail"
-        component={DetailScreen}
-        options={({ route }) => ({
-          title: route.params.title,
-          headerShown: true,
-        })}
-      />
     </EarnStackNav.Navigator>
   );
 }
@@ -100,14 +92,6 @@ function BorrowStack() {
         name="BorrowMain"
         component={BorrowScreen}
         options={{ headerShown: false }}
-      />
-      <BorrowStackNav.Screen
-        name="Detail"
-        component={DetailScreen}
-        options={({ route }) => ({
-          title: route.params.title,
-          headerShown: true,
-        })}
       />
     </BorrowStackNav.Navigator>
   );
@@ -121,14 +105,6 @@ function SwapStack() {
         component={SwapScreen}
         options={{ headerShown: false }}
       />
-      <SwapStackNav.Screen
-        name="Detail"
-        component={DetailScreen}
-        options={({ route }) => ({
-          title: route.params.title,
-          headerShown: true,
-        })}
-      />
     </SwapStackNav.Navigator>
   );
 }
@@ -140,14 +116,6 @@ function MyEarnStack() {
         name="MyEarnMain"
         component={MyEarnScreen}
         options={{ headerShown: false }}
-      />
-      <MyEarnStackNav.Screen
-        name="Detail"
-        component={DetailScreen}
-        options={({ route }) => ({
-          title: route.params.title,
-          headerShown: true,
-        })}
       />
     </MyEarnStackNav.Navigator>
   );
@@ -229,9 +197,19 @@ const appTheme = {
 const RootStack = createNativeStackNavigator();
 
 const RootNavigator = () => (
-  <RootStack.Navigator screenOptions={{ headerShown: false }}>
+  <RootStack.Navigator
+    screenOptions={{ headerShown: false, ...stackScreenOptions }}
+  >
     <RootStack.Screen name="Launch" component={LaunchScreen} />
     <RootStack.Screen name="MainTabs" component={AppTabs} />
+    <RootStack.Screen
+      name="Detail"
+      component={DetailScreen}
+      options={({ route }) => ({
+        title: (route.params as any)?.title || "",
+        headerShown: true,
+      })}
+    />
   </RootStack.Navigator>
 );
 

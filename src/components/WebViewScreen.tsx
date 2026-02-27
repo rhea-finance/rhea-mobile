@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -108,11 +109,71 @@ const INJECTED_BRIDGE_JS = `
       postMsg({ type: 'refreshDone' });
     },
 
-    // ---- TabBar 显隐 ----
+    // ---- TabBar Visibility ----
     setTabBarVisible: function(visible) {
       postMsg({ type: 'setTabBarVisible', visible: !!visible });
     }
   };
+
+  // Hijack window.open to Native navigate (for Web3 links / external prompts)
+  var originalWindowOpen = window.open;
+  window.open = function(url, name, specs) {
+    if (window.RheaBridge) {
+      if (typeof url === 'string' && url.match(/^https?:/i)) {
+        window.RheaBridge.navigate(url);
+      } else {
+        window.location.href = url; // Let native schema handler catch it
+      }
+    } else {
+      originalWindowOpen(url, name, specs);
+    }
+    return null;
+  };
+
+  // Hijack History API (React/Next.js SPA routing)
+  var originalPushState = history.pushState;
+  var originalReplaceState = history.replaceState;
+  
+  function handleHistoryUrl(url) {
+    try {
+      var newUrl = new URL(url.toString(), window.location.href);
+      if (newUrl.protocol.startsWith('http')) {
+        var isDiffPath = newUrl.origin !== window.location.origin || newUrl.pathname !== window.location.pathname;
+        if (isDiffPath && window.RheaBridge) {
+          window.RheaBridge.navigate(newUrl.href);
+          return true; // intercept
+        }
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  history.pushState = function(state, unused, url) {
+    if (url && handleHistoryUrl(url)) return;
+    return originalPushState.apply(this, arguments);
+  };
+  history.replaceState = function(state, unused, url) {
+    if (url && handleHistoryUrl(url)) return;
+    return originalReplaceState.apply(this, arguments);
+  };
+
+  // Intercept <a> clicks globally to catch Next.js/React Router before they process it
+  window.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (a && a.href && a.target !== '_blank') {
+      try {
+        var newUrl = new URL(a.href, window.location.href);
+        if (newUrl.protocol.startsWith('http')) {
+          var isDiffPath = newUrl.origin !== window.location.origin || newUrl.pathname !== window.location.pathname;
+          if (isDiffPath && window.RheaBridge) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.RheaBridge.navigate(newUrl.href);
+          }
+        }
+      } catch(err) {}
+    }
+  }, true);
 
   window.dispatchEvent(new Event('RheaBridgeReady'));
 })();
@@ -183,6 +244,8 @@ const WebViewScreenInner = (
 
   const webViewRef = useRef<any>(null);
   const [canGoBack, setCanGoBack] = useState(false);
+  const isInitialLoadRef = useRef(true);
+  const currentUrlRef = useRef(url);
 
   useImperativeHandle(ref, () => ({
     injectJavaScript: (js: string) => {
@@ -212,6 +275,9 @@ const WebViewScreenInner = (
 
   const handleNavigationStateChange = (navState: any) => {
     setCanGoBack(navState.canGoBack);
+    if (navState.url) {
+      currentUrlRef.current = navState.url;
+    }
   };
 
   const [isTop, setIsTop] = useState(true);
@@ -286,8 +352,51 @@ const WebViewScreenInner = (
           onScroll={handleScroll}
           onNavigationStateChange={handleNavigationStateChange}
           onMessage={handleMessage}
+          onShouldStartLoadWithRequest={(request: any) => {
+            const isHttp =
+              request.url.startsWith("http://") ||
+              request.url.startsWith("https://");
+            const isSafe =
+              request.url.startsWith("about:") ||
+              request.url.startsWith("data:") ||
+              request.url.startsWith("javascript:") ||
+              request.url.startsWith("blob:");
+
+            // Custom Schemes (e.g. WalletConnect wc://, Telegram tg://, okex://)
+            if (!isHttp && !isSafe) {
+              // Directly open URL. canOpenURL might return false on iOS if scheme is not in Info.plist
+              Linking.openURL(request.url).catch((err: any) => {
+                console.warn(
+                  "Failed to open scheme (maybe app not installed):",
+                  request.url,
+                );
+              });
+              return false; // Very important: stop WebView from trying to render a wallet scheme
+            }
+
+            if (isInitialLoadRef.current) return true;
+            if (!isHttp) return true;
+            // Allow iframes
+            if (request.isTopFrame === false) return true;
+
+            const getBaseUrl = (u: string) => u.split("?")[0].split("#")[0];
+            const reqBase = getBaseUrl(request.url);
+            const currBase = getBaseUrl(currentUrlRef.current);
+
+            // Intercept if navigating to a different base URL (full page transition)
+            if (reqBase !== currBase) {
+              if (onMessage) {
+                onMessage({ type: "navigate", url: request.url });
+              }
+              return false; // Prevent current WebView from navigating
+            }
+            return true;
+          }}
           onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
+          onLoadEnd={() => {
+            setLoading(false);
+            isInitialLoadRef.current = false;
+          }}
           onError={() => {
             setError(true);
             setLoading(false);
