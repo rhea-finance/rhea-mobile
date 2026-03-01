@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TabBarProvider, useTabBar } from "../contexts/TabBarContext";
 import { SolanaWalletBridgeProvider } from "../contexts/SolanaWalletBridgeContext";
-import LaunchScreen from "../screens/LaunchScreen";
 import EarnScreen from "../screens/EarnScreen";
 import BorrowScreen from "../screens/BorrowScreen";
 import SwapScreen from "../screens/SwapScreen";
@@ -20,7 +19,6 @@ import { WEB_URLS } from "../config/urls";
 type DetailParams = { url: string; title: string; callbackId?: string };
 
 type RootStackParamList = {
-  Launch: undefined;
   MainTabs: undefined;
   Detail: DetailParams;
 };
@@ -275,9 +273,9 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => (
   <RootStack.Navigator
+    initialRouteName="MainTabs"
     screenOptions={{ headerShown: false, ...stackScreenOptions }}
   >
-    <RootStack.Screen name="Launch" component={LaunchScreen} />
     <RootStack.Screen name="MainTabs" component={AppTabs} />
     <RootStack.Screen
       name="Detail"

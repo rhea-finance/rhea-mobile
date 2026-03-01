@@ -8,6 +8,41 @@
 
 **No need to install Java, Android SDK, or NDK locally.** All compilation happens in Expo cloud.
 
+## Development Workflow
+
+### Option 1: Local Development (Recommended for UI Debugging)
+
+For fast iteration during development, use Expo Dev Client with hot reload:
+
+#### First Time Setup
+
+1. Build a development APK (once):
+```bash
+eas build --profile development --platform android
+```
+
+2. Wait ~10-15 minutes, download and install the APK on your phone
+
+#### Daily Development
+
+1. Start development server:
+```bash
+npm start
+# or with cache cleared
+npm run dev
+```
+
+2. On your phone:
+   - Open the Development version app
+   - Scan the QR code or enter the dev server URL
+   - Code changes will hot reload in seconds
+
+**When to rebuild:**
+- Modifying native code (`app.json`, adding native modules)
+- Pure JS/TS changes (UI, logic) don't require rebuild
+
+### Option 2: Cloud Build (For Testing Complete Builds)
+
 ## 1. Install Dependencies
 
 ```bash
@@ -28,9 +63,9 @@ eas login
 
 If you don't have an account, register at https://expo.dev/signup (free).
 
-## 4. Build APK (Cloud)
+## Build APK (Cloud)
 
-### Preview Build (Recommended for Testing)
+### Preview Build (For Internal Testing)
 
 ```bash
 eas build --profile preview --platform android
@@ -47,7 +82,7 @@ eas build --profile preview --platform android
 eas build --profile production --platform android
 ```
 
-## 5. Install on Phone
+## Install APK on Phone
 
 After downloading APK:
 
@@ -55,15 +90,15 @@ After downloading APK:
 2. Tap APK file to install
 3. If "Unknown source" warning appears, allow installation from unknown apps in system settings
 
-## Build Configuration
+## Build Profiles
 
 `eas.json` contains three profiles:
 
-| Profile | Purpose | Output |
-|---------|---------|--------|
-| development | Dev/Debug | Dev client |
-| preview | Internal testing | APK |
-| production | Official release | APK |
+| Profile | Purpose | Use Case | Output |
+|---------|---------|----------|--------|
+| development | Local dev with hot reload | UI debugging, rapid iteration | Dev client APK |
+| preview | Internal testing | Testing complete features | Standard APK |
+| production | Official release | Distribution | Production APK |
 
 ## FAQ
 
@@ -83,14 +118,6 @@ eas build:list
 
 Or visit Dashboard at https://expo.dev.
 
-### Local Development Preview (No APK Build Needed)
+### Why not use Expo Go?
 
-Install Expo Go app on phone (search "Expo Go" on Google Play), then:
-
-```bash
-npm start
-```
-
-Scan QR code in terminal to preview on phone in real-time.
-
-**Note**: WebView may have limitations in Expo Go, use EAS Build APK for complete testing.
+Expo Go doesn't support custom native modules (WebView, Solana MWA). Use Development build instead for full feature testing.

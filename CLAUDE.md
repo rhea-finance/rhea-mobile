@@ -24,7 +24,6 @@ src/
 ├── navigation/
 │   └── AppNavigator.tsx       # Navigation config + custom icons + TabBar visibility
 ├── screens/
-│   ├── LaunchScreen.tsx       # Launch screen with progress bar
 │   ├── EarnScreen.tsx         # Earn Tab
 │   ├── BorrowScreen.tsx       # Borrow Tab
 │   ├── SwapScreen.tsx         # Swap Tab
@@ -192,26 +191,36 @@ const signature = await sendTransaction(transaction, connection, options);
 
 ## Development Commands
 
+### Local Development (Fast UI Debugging)
+
+**First Time**: Build development APK once
 ```bash
-npm install               # Install dependencies
-npx expo start            # Start dev server
-npx expo start --android  # Debug on Android device
-npx expo start --web      # Debug in web mode
+eas build --profile development --platform android
 ```
 
-## Build APK
+**Daily Development**: Hot reload in seconds
+```bash
+npm start         # Start dev server with hot reload
+npm run dev       # Start with cache cleared
+```
 
-Due to Solana Mobile Wallet Adapter (Kotlin native modules), must build custom development build:
+On phone: Open development app → Scan QR code → Code changes reload instantly
+
+### Cloud Build (Full APK)
 
 ```bash
-# Development build (requires Android device or emulator)
-npx expo run:android
-
-# Production build (via EAS Build)
+# Preview build (internal testing)
 eas build -p android --profile preview
+
+# Production build (release)
+eas build -p android --profile production
 ```
 
-**Note**: Cannot use Expo Go, must build full APK with native modules.
+**Development vs Preview**:
+- **Development**: One-time build + hot reload for rapid iteration
+- **Preview**: Full APK build for testing complete features (10-15 min each time)
+
+**Note**: Cannot use Expo Go due to native modules (WebView, Solana MWA)
 
 ## Tab URL Configuration
 
@@ -236,13 +245,13 @@ Icon files in `assets/tab-icons/`, naming convention:
 3. Click "Connect Wallet" should open wallet authorization
 4. Test sign message and transaction functions
 
-## Launch Screen
+## Startup Flow
 
-App uses a unified launch experience:
-- **Splash Screen**: Uses `splash-icon.png` with `#F4F4F4` background
-- **Launch Screen**: Shows same image + animated progress bar
-- **Manual Control**: `SplashScreen.preventAutoHideAsync()` in App.tsx, `hideAsync()` in LaunchScreen
-- **Seamless Transition**: User sees one continuous screen with progress animation
+App uses a simple startup experience:
+- **Splash Screen**: Shows `splash-icon.png` (logo only) with `#F4F4F4` background
+- **Preloading**: Preloads first tab (Earn) in background during splash (1 second)
+- **Manual Control**: `SplashScreen.preventAutoHideAsync()` in App.tsx, waits 1s then `hideAsync()`
+- **Direct Entry**: After splash, directly enters main tabs interface
 
 ## Test Tab Usage
 
