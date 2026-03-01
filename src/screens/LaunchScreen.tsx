@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation, StackActions } from "@react-navigation/native";
+import PreloadWebView from "../components/PreloadWebView";
+import { WEB_URLS } from "../config/urls";
 
 const { width } = Dimensions.get("window");
 
@@ -30,7 +32,7 @@ const LaunchScreen = () => {
       {/* Floating Background Blob */}
       <Image
         source={require("../../assets/launch/bg.svg")}
-        style={StyleSheet.absoluteFillObject}
+        style={[StyleSheet.absoluteFillObject, { marginLeft: 30, marginRight: 30 }]}
         contentFit="contain"
       />
 
@@ -51,6 +53,9 @@ const LaunchScreen = () => {
           />
         </View>
       </View>
+
+      {/* Preload first tab (Earn) during launch animation */}
+      <PreloadWebView url={WEB_URLS.EARN} />
     </View>
   );
 };

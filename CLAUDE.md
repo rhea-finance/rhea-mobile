@@ -1,121 +1,233 @@
 # Rhea Mobile
 
-Expo React Native Android App，4 个原生底部 Tab + WebView 混合架构。
+Expo React Native Android App with 4 native bottom tabs + WebView hybrid architecture.
 
-## 技术栈
+## Tech Stack
 
 - Expo SDK 54 + React Native 0.81
 - TypeScript
 - @react-navigation/native + bottom-tabs + native-stack
 - react-native-webview
-- EAS Build 云端构建（无需本地 Android SDK）
+- EAS Build (cloud build, no local Android SDK required)
 
-## 项目结构
+## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── WebViewScreen.tsx    # 通用 WebView 封装（Bridge 注入、下拉刷新、forwardRef）
-│   └── BottomModal.tsx      # 底部弹出 Modal（Animated 滑入 + 遮罩）
+│   ├── WebViewScreen.tsx    # WebView wrapper (Bridge injection, pull-to-refresh, forwardRef)
+│   └── BottomModal.tsx      # Bottom modal (Animated slide-in + overlay)
 ├── contexts/
-│   └── TabBarContext.tsx     # TabBar 显隐状态 Context
-├── hooks/
-│   └── useWebBridge.ts      # Bridge 消息处理（导航/Modal/回调/TabBar）
+│   ├── TabBarContext.tsx           # TabBar visibility state Context
+│   └── SolanaWalletBridgeContext.tsx  # Solana Wallet Bridge management
 ├── navigation/
-│   └── AppNavigator.tsx     # 导航配置 + 自定义图标 + TabBar 显隐
+│   └── AppNavigator.tsx     # Navigation config + custom icons + TabBar visibility
 ├── screens/
 │   ├── EarnScreen.tsx       # Earn Tab
 │   ├── BorrowScreen.tsx     # Borrow Tab
 │   ├── SwapScreen.tsx       # Swap Tab
 │   ├── MyEarnScreen.tsx     # My Tab
-│   └── DetailScreen.tsx     # 二级页面（全屏 push）
+│   ├── TestScreen.tsx       # Test Tab (URL input for debugging)
+│   └── DetailScreen.tsx     # Detail page (full-screen push)
 assets/
 ├── tab-icons/
 │   ├── earn.png / earn-active.png
 │   ├── borrow.png / borrow-active.png
 │   ├── swap.png / swap-active.png
-│   └── my.png / my-active.png
+│   ├── my.png / my-active.png
+│   └── test.png / test-active.png
 web-demo/
-├── index.html               # Bridge 调用完整示例 Demo
-└── modal-content.html       # Modal 内容页面示例
+├── index.html               # Bridge usage demo
+├── modal-content.html       # Modal content example
+└── solana-wallet-test.html  # Solana Wallet integration test page
 ```
 
-## 导航架构
+## Navigation Architecture
 
-- Bottom Tab Navigator: Earn / Borrow / Swap / My
-- 每个 Tab 内嵌 Native Stack Navigator，均支持跳转 Detail 二级页面
-- Android 硬件返回键支持 WebView 内部后退
+- Bottom Tab Navigator: Earn / Borrow / Swap / My / Test
+- Each Tab embeds a Native Stack Navigator, all support navigation to Detail pages
+- Android hardware back button supports WebView internal back navigation
 
-## WebView 通信（RheaBridge）
+## WebView Communication
 
-WebView 启动时自动注入 `window.RheaBridge` 对象。
+WebView automatically injects two global objects: `window.RheaBridge` and `window.solanaWallet`.
 
-### Bridge API
+### RheaBridge API
 
 ```javascript
-// 打开二级页面，支持回调
+// Open detail page with callback support
 RheaBridge.navigate(url, { title?, callback? })
 
-// 打开底部 Modal，支持回调
+// Open bottom modal with callback support
 RheaBridge.openModal({ title, url?, data?, callback? })
 
-// 返回上一页并传数据给 callback
+// Go back and pass data to callback
 RheaBridge.goBack(data?)
 
-// 关闭当前 Modal
+// Close current modal
 RheaBridge.closeModal()
 
-// 通知下拉刷新完成
+// Notify pull-to-refresh complete
 RheaBridge.refreshDone()
 
-// 控制 TabBar 显隐
+// Control TabBar visibility
 RheaBridge.setTabBarVisible(visible)
 ```
 
-### 下拉刷新
+### Pull to Refresh
 
 ```javascript
 window.addEventListener("rheaRefresh", function () {
   fetchData().then(function () {
-    RheaBridge.refreshDone(); // 超时 5s 自动回弹
+    RheaBridge.refreshDone(); // Auto rebound after 5s timeout
   });
 });
 ```
 
-### Bridge 就绪事件
+### Bridge Ready Event
 
 ```javascript
 window.addEventListener("RheaBridgeReady", function () {
-  // Bridge 已就绪
+ // Bridge is ready
 });
 ```
 
-## 开发命令
+## Solana Wallet Integration
 
-```bash
-npm install               # 安装依赖
-npx expo start            # 启动开发服务器
-npx expo start --android  # Android 设备调试
-npx expo start --web      # Web 模式调试
+App integrates Solana Mobile Wallet Adapter, dapps in WebView can directly call wallet functions via `window.solanaWallet`.
+
+### Solana Wallet API
+
+```javascript
+// Connect wallet (opens Phantom/Solflare etc.)
+await window.solanaWallet.connect()
+
+// Disconnect
+await window.solanaWallet.disconnect()
+
+// Sign message
+const message = new TextEncoder().encode("Hello Solana")
+const signature = await window.solanaWallet.signMessage(message)
+
+// Sign transaction
+const signedTx = await window.solanaWallet.signTransaction(transaction)
+
+// Sign multiple transactions
+const signedTxs = await window.solanaWallet.signAllTransactions([tx1, tx2])
+
+// Get public key
+const pubkey = window.solanaWallet.publicKey?.toBase58()
+
+// Check connection status
+if (window.solanaWallet.connected) {
+  console.log("Wallet connected")
+}
 ```
 
-## 构建 APK
+### Listen to Wallet Events
+
+```javascript
+window.solanaWallet.on('connect', () => {
+  console.log('Wallet connected')
+})
+
+window.solanaWallet.on('disconnect', () => {
+  console.log('Wallet disconnected')
+})
+
+window.solanaWallet.on('accountChanged', (data) => {
+  console.log('Account changed:', data.publicKey)
+})
+```
+
+### Wallet Ready Event
+
+```javascript
+window.addEventListener('solanaWalletReady', function() {
+  // Solana Wallet is ready
+  console.log('Wallet available:', window.solanaWallet)
+})
+```
+
+### Solana Wallet Adapter Integration
+
+`window.solanaWallet` implements wallet-specific methods from `@solana/wallet-adapter-base` standard.
+
+**Important**: Dapp must create its own Connection instance:
+
+```javascript
+import { Connection } from '@solana/web3.js';
+
+// Initialize your own connection
+const connection = new Connection('https://rpc');
+
+// Use window.solanaWallet for wallet operations
+const { publicKey, sendTransaction } = window.solanaWallet;
+
+// Example: Send transaction
+const transaction = new Transaction().add(/* instructions */);
+const signature = await sendTransaction(transaction, connection, options);
+```
+
+## Development Commands
 
 ```bash
+npm install               # Install dependencies
+npx expo start            # Start dev server
+npx expo start --android  # Debug on Android device
+npx expo start --web      # Debug in web mode
+```
+
+## Build APK
+
+Due to Solana Mobile Wallet Adapter (Kotlin native modules), must build custom development build:
+
+```bash
+# Development build (requires Android device or emulator)
+npx expo run:android
+
+# Production build (via EAS Build)
 eas build -p android --profile preview
 ```
 
-## Tab URL 配置
+**Note**: Cannot use Expo Go, must build full APK with native modules.
+
+## Tab URL Configuration
 
 - Earn: `src/screens/EarnScreen.tsx` → `EARN_URL`
 - Borrow: `src/screens/BorrowScreen.tsx` → `BORROW_URL`
 - Swap: `src/screens/SwapScreen.tsx` → `SWAP_URL`
 - My: `src/screens/MyEarnScreen.tsx` → `MY_EARN_URL`
+- Test: User input for debugging
 
-## Tab 图标
+## Tab Icons
 
-图标文件放在 `assets/tab-icons/`，命名规则：
+Icon files in `assets/tab-icons/`, naming convention:
 
-- `{name}.png` — 未选中状态
-- `{name}-active.png` — 选中状态
-- 建议尺寸 48x48px，PNG 透明背景
+- `{name}.png` — Inactive state
+- `{name}-active.png` — Active state
+- Recommended size: 48x48px, PNG with transparent background
+
+## Test Solana Wallet Integration
+
+1. Ensure MWA-compatible wallet (Phantom, Solflare) is installed on device
+2. Open test page in browser: `web-demo/solana-wallet-test.html`
+3. Click "Connect Wallet" should open wallet authorization
+4. Test sign message and transaction functions
+
+## Test Tab Usage
+
+The 5th Tab (Test) allows you to:
+1. Enter any URL (local dev server, staging, production)
+2. Click "Load" button
+3. WebView loads the page with Solana Wallet Bridge injected
+4. Perfect for debugging without rebuilding the app
+
+## Dependencies
+
+Core dependencies:
+
+- `@wallet-ui/react-native-web3js` - Solana Mobile Wallet Adapter
+- `react-native-quick-crypto` - Crypto polyfill for React Native
+- `@solana/web3.js` - Solana JavaScript SDK
+- `expo-dev-client` - Custom development build support

@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useImperativeHandle,
   forwardRef,
+  useEffect,
 } from "react";
 import {
   StyleSheet,
@@ -18,6 +19,7 @@ import {
   Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSolanaWalletBridge } from "../contexts/SolanaWalletBridgeContext";
 
 interface WebViewScreenProps {
   url: string;
@@ -30,7 +32,7 @@ export interface WebViewScreenRef {
 
 /**
  * Injected JS Bridge script for WebView
- * Exposes window.RheaBridge object
+ * Exposes window.RheaBridge object and window.solanaWallet object
  */
 const INJECTED_BRIDGE_JS = `
 (function() {
@@ -38,12 +40,13 @@ const INJECTED_BRIDGE_JS = `
 
   var _callbackId = 0;
   var _callbacks = {};
+  var _walletRequestId = 0;
+  var _walletRequests = {};
 
   function postMsg(data) {
     if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
       window.ReactNativeWebView.postMessage(JSON.stringify(data));
     } else if (window.parent !== window) {
-      // iframe 模式（Expo Web）：通过 parent.postMessage 通信
       window.parent.postMessage({ source: 'rhea-bridge', payload: data }, '*');
     }
   }
@@ -99,12 +102,12 @@ const INJECTED_BRIDGE_JS = `
       postMsg({ type: 'goBack', data: data || null });
     },
 
-    // ---- 关闭当前 Modal ----
+    // ---- Close Current Modal ----
     closeModal: function() {
       postMsg({ type: 'closeModal' });
     },
 
-    // ---- 下拉刷新完成 ----
+    // ---- Refresh Done ----
     refreshDone: function() {
       postMsg({ type: 'refreshDone' });
     },
@@ -176,6 +179,233 @@ const INJECTED_BRIDGE_JS = `
   }, true);
 
   window.dispatchEvent(new Event('RheaBridgeReady'));
+
+  // ========== Solana Wallet Bridge ==========
+  var _walletState = {
+    publicKey: null,
+    connected: false,
+    connecting: false
+  };
+  var _walletEventListeners = {};
+
+  function emitWalletEvent(event, data) {
+    if (_walletEventListeners[event]) {
+      _walletEventListeners[event].forEach(function(callback) {
+        try { callback(data); } catch(e) {}
+      });
+    }
+  }
+
+  window.solanaWallet = {
+    get publicKey() {
+      if (!_walletState.publicKey) return null;
+      return {
+        toBase58: function() { return _walletState.publicKey; },
+        toString: function() { return _walletState.publicKey; },
+        toBuffer: function() {
+          var bs58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+          var bytes = [0];
+          for (var i = 0; i < _walletState.publicKey.length; i++) {
+            var c = _walletState.publicKey[i];
+            var value = bs58.indexOf(c);
+            if (value < 0) throw new Error('Invalid character');
+            for (var j = 0; j < bytes.length; j++) bytes[j] *= 58;
+            bytes[0] += value;
+            var carry = 0;
+            for (var k = 0; k < bytes.length; k++) {
+              bytes[k] += carry;
+              carry = bytes[k] >> 8;
+              bytes[k] &= 0xff;
+            }
+            while (carry > 0) {
+              bytes.push(carry & 0xff);
+              carry >>= 8;
+            }
+          }
+          for (var l = 0; l < _walletState.publicKey.length && _walletState.publicKey[l] === '1'; l++) {
+            bytes.push(0);
+          }
+          return new Uint8Array(bytes.reverse());
+        }
+      };
+    },
+
+    get connected() { return _walletState.connected; },
+    get connecting() { return _walletState.connecting; },
+
+    connect: function() {
+      return new Promise(function(resolve, reject) {
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { 
+          resolve: function(result) {
+            if (result && result.address) {
+              _walletState.publicKey = result.address.toString();
+              _walletState.connected = true;
+              _walletState.connecting = false;
+            }
+            resolve(result);
+          }, 
+          reject: reject 
+        };
+        _walletState.connecting = true;
+        postMsg({ type: 'wallet_connect', requestId: reqId });
+      });
+    },
+
+    disconnect: function() {
+      return new Promise(function(resolve, reject) {
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { 
+          resolve: function(result) {
+            _walletState.publicKey = null;
+            _walletState.connected = false;
+            _walletState.connecting = false;
+            resolve(result);
+          }, 
+          reject: reject 
+        };
+        postMsg({ type: 'wallet_disconnect', requestId: reqId });
+      });
+    },
+
+    signMessage: function(message) {
+      return new Promise(function(resolve, reject) {
+        if (!(message instanceof Uint8Array)) {
+          reject(new Error('Message must be Uint8Array'));
+          return;
+        }
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { resolve: resolve, reject: reject };
+        var messageBase64 = btoa(String.fromCharCode.apply(null, message));
+        postMsg({ type: 'wallet_signMessage', requestId: reqId, data: { message: messageBase64 } });
+      });
+    },
+
+    signTransaction: function(transaction) {
+      return new Promise(function(resolve, reject) {
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { resolve: resolve, reject: reject };
+        var txSerialized;
+        try {
+          if (transaction.serialize) {
+            txSerialized = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+          } else if (transaction.serializeMessage) {
+            txSerialized = transaction.serializeMessage();
+          } else {
+            throw new Error('Transaction must have serialize method');
+          }
+          var txBase64 = btoa(String.fromCharCode.apply(null, txSerialized));
+          postMsg({ type: 'wallet_signTransaction', requestId: reqId, data: { transaction: txBase64 } });
+        } catch(e) {
+          reject(e);
+        }
+      });
+    },
+
+    signAllTransactions: function(transactions) {
+      return new Promise(function(resolve, reject) {
+        if (!Array.isArray(transactions)) {
+          reject(new Error('Transactions must be an array'));
+          return;
+        }
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { resolve: resolve, reject: reject };
+        try {
+          var txsBase64 = transactions.map(function(tx) {
+            var txSerialized;
+            if (tx.serialize) {
+              txSerialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+            } else if (tx.serializeMessage) {
+              txSerialized = tx.serializeMessage();
+            } else {
+              throw new Error('Transaction must have serialize method');
+            }
+            return btoa(String.fromCharCode.apply(null, txSerialized));
+          });
+          postMsg({ type: 'wallet_signAllTransactions', requestId: reqId, data: { transactions: txsBase64 } });
+        } catch(e) {
+          reject(e);
+        }
+      });
+    },
+
+    sendTransaction: function(transaction, connection, options) {
+      return new Promise(function(resolve, reject) {
+        var reqId = 'wallet_req_' + (++_walletRequestId);
+        _walletRequests[reqId] = { resolve: resolve, reject: reject };
+        var txSerialized;
+        try {
+          if (transaction.serialize) {
+            txSerialized = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+          } else if (transaction.serializeMessage) {
+            txSerialized = transaction.serializeMessage();
+          } else {
+            throw new Error('Transaction must have serialize method');
+          }
+          var txBase64 = btoa(String.fromCharCode.apply(null, txSerialized));
+          postMsg({ 
+            type: 'wallet_sendTransaction', 
+            requestId: reqId, 
+            data: { 
+              transaction: txBase64,
+              options: options || {}
+            } 
+          });
+        } catch(e) {
+          reject(e);
+        }
+      });
+    },
+
+    on: function(event, callback) {
+      if (!_walletEventListeners[event]) {
+        _walletEventListeners[event] = [];
+      }
+      _walletEventListeners[event].push(callback);
+    },
+
+    off: function(event, callback) {
+      if (_walletEventListeners[event]) {
+        _walletEventListeners[event] = _walletEventListeners[event].filter(function(cb) {
+          return cb !== callback;
+        });
+      }
+    },
+
+    _updateState: function(newState) {
+      var prevConnected = _walletState.connected;
+      var prevPublicKey = _walletState.publicKey;
+      
+      _walletState.publicKey = newState.publicKey || null;
+      _walletState.connected = newState.connected || false;
+      _walletState.connecting = newState.connecting || false;
+
+      if (prevConnected !== _walletState.connected) {
+        if (_walletState.connected) {
+          emitWalletEvent('connect', { publicKey: window.solanaWallet.publicKey });
+        } else {
+          emitWalletEvent('disconnect', {});
+        }
+      }
+
+      if (prevPublicKey !== _walletState.publicKey && _walletState.publicKey) {
+        emitWalletEvent('accountChanged', { publicKey: window.solanaWallet.publicKey });
+      }
+    },
+
+    _resolveRequest: function(requestId, success, result, error) {
+      if (_walletRequests[requestId]) {
+        if (success) {
+          _walletRequests[requestId].resolve(result);
+        } else {
+          _walletRequests[requestId].reject(new Error(error || 'Unknown error'));
+        }
+        delete _walletRequests[requestId];
+      }
+    }
+  };
+
+  window.dispatchEvent(new Event('solanaWalletReady'));
 })();
 true;
 `;
@@ -188,13 +418,16 @@ const WebViewScreenInner = (
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webViewIdRef = useRef(`webview_${Date.now()}_${Math.random()}`);
+  const { registerWebView, unregisterWebView, handleWalletRequest } =
+    useSolanaWalletBridge();
 
   if (Platform.OS === "web") {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
     useImperativeHandle(ref, () => ({
       injectJavaScript: (js: string) => {
-        // 通过 postMessage 向 iframe 注入回调
+        // Inject callback to iframe via postMessage
         try {
           iframeRef.current?.contentWindow?.postMessage(
             { source: "rhea-bridge-inject", js },
@@ -204,7 +437,7 @@ const WebViewScreenInner = (
       },
     }));
 
-    // 监听 iframe 通过 parent.postMessage 发来的消息
+    // Listen to messages from iframe via parent.postMessage
     React.useEffect(() => {
       const handler = (event: MessageEvent) => {
         if (
@@ -253,6 +486,20 @@ const WebViewScreenInner = (
     },
   }));
 
+  useEffect(() => {
+    if (webViewRef.current) {
+      registerWebView(webViewIdRef.current, {
+        injectJavaScript: (js: string) => {
+          webViewRef.current?.injectJavaScript(js);
+        },
+      });
+    }
+
+    return () => {
+      unregisterWebView(webViewIdRef.current);
+    };
+  }, [registerWebView, unregisterWebView]);
+
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS === "android") {
@@ -297,6 +544,16 @@ const WebViewScreenInner = (
         }
         return;
       }
+
+      if (
+        data.type &&
+        data.type.startsWith("wallet_") &&
+        data.requestId
+      ) {
+        handleWalletRequest(data);
+        return;
+      }
+
       if (onMessage) {
         onMessage(data);
       }

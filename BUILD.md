@@ -1,95 +1,96 @@
-# APK 编译打包指南
+# APK Build Guide
 
-## 环境要求
+## Requirements
 
-- Node.js >= 18
-- npm
-- Expo 账号（免费注册：https://expo.dev/signup）
+- Node.js 16+
+- npm / yarn / pnpm
+- Expo account (free signup: https://expo.dev/signup)
 
-**无需本地安装 Java、Android SDK、NDK。** 所有编译在 Expo 云端完成。
+**No need to install Java, Android SDK, or NDK locally.** All compilation happens in Expo cloud.
 
-## 1. 安装依赖
+## 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-## 2. 安装 EAS CLI
+## 2. Install EAS CLI
 
 ```bash
 npm install -g eas-cli
 ```
 
-## 3. 登录 Expo 账号
+## 3. Login to Expo Account
 
 ```bash
 eas login
 ```
 
-如果没有账号，先去 https://expo.dev/signup 注册一个（免费）。
+If you don't have an account, register at https://expo.dev/signup (free).
 
-## 4. 构建 APK（云端）
+## 4. Build APK (Cloud)
 
-### Preview 版本（推荐测试用）
-
-```bash
-eas build -p android --profile preview
-```
-
-- 构建完成后终端会输出下载链接
-- 也可以在 https://expo.dev 的 Dashboard 中找到构建产物
-- 直接下载 `.apk` 文件传到 Android 手机安装即可
-
-### Production 版本
+### Preview Build (Recommended for Testing)
 
 ```bash
-eas build -p android --profile production
+eas build --profile preview --platform android
 ```
 
-## 5. 安装到手机
+- Build takes ~10-15 minutes (first time)
+- Download link appears in terminal after completion
+- Can also find builds in Dashboard at https://expo.dev
+- Download `.apk` file and install on Android phone
 
-下载 APK 后：
+### Production Build
 
-1. 将 APK 传输到 Android 手机（USB / 微信 / 网盘等）
-2. 手机上点击 APK 文件安装
-3. 如果提示「未知来源」，需要在系统设置中允许安装未知应用
+```bash
+eas build --profile production --platform android
+```
 
-## 构建配置说明
+## 5. Install on Phone
 
-`eas.json` 中有三个 profile：
+After downloading APK:
 
-| Profile | 用途 | 产物 |
-|---------|------|------|
-| development | 开发调试 | 开发客户端 |
-| preview | 内部测试 | APK |
-| production | 正式发布 | APK |
+1. Transfer APK to Android phone (USB / WeChat / Cloud drive)
+2. Tap APK file to install
+3. If "Unknown source" warning appears, allow installation from unknown apps in system settings
 
-## 常见问题
+## Build Configuration
 
-### 首次构建要多久？
+`eas.json` contains three profiles:
 
-首次构建约 10-15 分钟（需要在云端配置环境），后续构建会更快。
+| Profile | Purpose | Output |
+|---------|---------|--------|
+| development | Dev/Debug | Dev client |
+| preview | Internal testing | APK |
+| production | Official release | APK |
 
-### 免费账号有限制吗？
+## FAQ
 
-Expo 免费账号每月有 30 次 build 额度，对测试完全够用。
+### How long does first build take?
 
-### 如何查看构建状态？
+First build takes ~10-15 minutes (cloud environment setup), subsequent builds are faster.
+
+### Are there limits on free account?
+
+Expo free account has 30 builds per month, sufficient for testing.
+
+### How to check build status?
 
 ```bash
 eas build:list
 ```
 
-或者直接访问 https://expo.dev 的 Dashboard。
+Or visit Dashboard at https://expo.dev.
 
-### 本地开发预览（无需构建 APK）
+### Local Development Preview (No APK Build Needed)
 
-在手机上安装 Expo Go app（Google Play 搜索 "Expo Go"），然后：
+Install Expo Go app on phone (search "Expo Go" on Google Play), then:
 
 ```bash
-npx expo start
+npm start
 ```
 
-扫描终端显示的二维码即可在手机上实时预览。
+Scan QR code in terminal to preview on phone in real-time.
 
-**注意**：WebView 在 Expo Go 中可能有限制，完整测试请使用 EAS Build 构建的 APK。
+**Note**: WebView may have limitations in Expo Go, use EAS Build APK for complete testing.

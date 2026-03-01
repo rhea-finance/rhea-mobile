@@ -1,18 +1,29 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Image, StyleSheet, Platform } from "react-native";
+import { Image, StyleSheet, Platform, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TabBarProvider, useTabBar } from "../contexts/TabBarContext";
+import { SolanaWalletBridgeProvider } from "../contexts/SolanaWalletBridgeContext";
 import LaunchScreen from "../screens/LaunchScreen";
 import EarnScreen from "../screens/EarnScreen";
 import BorrowScreen from "../screens/BorrowScreen";
 import SwapScreen from "../screens/SwapScreen";
 import MyEarnScreen from "../screens/MyEarnScreen";
+import TestScreen from "../screens/TestScreen";
 import DetailScreen from "../screens/DetailScreen";
+import PreloadWebView from "../components/PreloadWebView";
+import { WEB_URLS } from "../config/urls";
 
 type DetailParams = { url: string; title: string; callbackId?: string };
+
+type RootStackParamList = {
+  Launch: undefined;
+  MainTabs: undefined;
+  Detail: DetailParams;
+};
 
 type EarnStackParamList = {
   EarnMain: undefined;
@@ -34,10 +45,16 @@ type MyEarnStackParamList = {
   Detail: DetailParams;
 };
 
+type TestStackParamList = {
+  TestMain: undefined;
+  Detail: DetailParams;
+};
+
 const EarnStackNav = createNativeStackNavigator<EarnStackParamList>();
 const BorrowStackNav = createNativeStackNavigator<BorrowStackParamList>();
 const SwapStackNav = createNativeStackNavigator<SwapStackParamList>();
 const MyEarnStackNav = createNativeStackNavigator<MyEarnStackParamList>();
+const TestStackNav = createNativeStackNavigator<TestStackParamList>();
 
 const Tab = createBottomTabNavigator();
 
@@ -70,6 +87,10 @@ const TAB_ICONS: Record<string, { default: any; active: any }> = {
   My: {
     default: require("../../assets/tab-icons/my.png"),
     active: require("../../assets/tab-icons/my-active.png"),
+  },
+  Test: {
+    default: require("../../assets/tab-icons/test.png"),
+    active: require("../../assets/tab-icons/test-active.png"),
   },
 };
 
@@ -121,6 +142,18 @@ function MyEarnStack() {
   );
 }
 
+function TestStack() {
+  return (
+    <TestStackNav.Navigator screenOptions={stackScreenOptions}>
+      <TestStackNav.Screen
+        name="TestMain"
+        component={TestScreen}
+        options={{ headerShown: false }}
+      />
+    </TestStackNav.Navigator>
+  );
+}
+
 const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => {
   const icons = TAB_ICONS[label];
   if (!icons) return null;
@@ -135,54 +168,98 @@ const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => {
 
 function AppTabs() {
   const { tabBarVisible } = useTabBar();
+  const insets = useSafeAreaInsets();
+  const [preloadQueue, setPreloadQueue] = useState<string[]>([]);
+  const [currentPreload, setCurrentPreload] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPreloadQueue([WEB_URLS.BORROW, WEB_URLS.SWAP, WEB_URLS.MY_EARN]);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (preloadQueue.length > 0 && !currentPreload) {
+      setCurrentPreload(preloadQueue[0]);
+    }
+  }, [preloadQueue, currentPreload]);
+
+  const handlePreloadComplete = () => {
+    setPreloadQueue((prev) => prev.slice(1));
+    setCurrentPreload(null);
+  };
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: [styles.tabBar, !tabBarVisible && styles.tabBarHidden],
-        tabBarActiveTintColor: "#1a1a2e",
-        tabBarInactiveTintColor: "#9ca3af",
-        tabBarLabelStyle: styles.tabBarLabel,
-        lazy: false,
-        freezeOnBlur: false,
-      }}
-    >
-      <Tab.Screen
-        name="Earn"
-        component={EarnStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label="Earn" focused={focused} />
-          ),
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: [
+            styles.tabBar,
+            { 
+              height: 60 + (insets.bottom || 0),
+              paddingBottom: (insets.bottom || 0) + 8
+            },
+            !tabBarVisible && styles.tabBarHidden,
+          ],
+          tabBarActiveTintColor: "#1a1a2e",
+          tabBarInactiveTintColor: "#9ca3af",
+          tabBarLabelStyle: styles.tabBarLabel,
+          lazy: false,
+          freezeOnBlur: false,
         }}
-      />
-      <Tab.Screen
-        name="Borrow"
-        component={BorrowStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label="Borrow" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Swap"
-        component={SwapStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label="Swap" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="My"
-        component={MyEarnStack}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="My" focused={focused} />,
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="Earn"
+          component={EarnStack}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label="Earn" focused={focused} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Borrow"
+          component={BorrowStack}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label="Borrow" focused={focused} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Swap"
+          component={SwapStack}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label="Swap" focused={focused} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="My"
+          component={MyEarnStack}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label="My" focused={focused} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Test"
+          component={TestStack}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label="Test" focused={focused} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+      {currentPreload && (
+        <PreloadWebView url={currentPreload} onLoadComplete={handlePreloadComplete} />
+      )}
+    </View>
   );
 }
 
@@ -194,7 +271,7 @@ const appTheme = {
   },
 };
 
-const RootStack = createNativeStackNavigator();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => (
   <RootStack.Navigator
@@ -215,11 +292,13 @@ const RootNavigator = () => (
 
 const AppNavigator: React.FC = () => {
   return (
-    <TabBarProvider>
-      <NavigationContainer theme={appTheme}>
-        <RootNavigator />
-      </NavigationContainer>
-    </TabBarProvider>
+    <SolanaWalletBridgeProvider>
+      <TabBarProvider>
+        <NavigationContainer theme={appTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </TabBarProvider>
+    </SolanaWalletBridgeProvider>
   );
 };
 
@@ -228,8 +307,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderTopColor: "#e5e7eb",
     borderTopWidth: 1,
-    height: Platform.OS === "ios" ? 85 : 60,
-    paddingBottom: Platform.OS === "ios" ? 25 : 8,
     paddingTop: 4,
   },
   tabBarHidden: {
