@@ -15,20 +15,22 @@ Expo React Native Android App with 4 native bottom tabs + WebView hybrid archite
 ```
 src/
 ├── components/
-│   ├── WebViewScreen.tsx    # WebView wrapper (Bridge injection, pull-to-refresh, forwardRef)
-│   └── BottomModal.tsx      # Bottom modal (Animated slide-in + overlay)
+│   ├── WebViewScreen.tsx      # WebView wrapper (Bridge injection, pull-to-refresh, forwardRef)
+│   ├── BottomModal.tsx        # Bottom modal (Animated slide-in + overlay)
+│   └── PreloadWebView.tsx     # Hidden WebView for preloading pages
 ├── contexts/
-│   ├── TabBarContext.tsx           # TabBar visibility state Context
-│   └── SolanaWalletBridgeContext.tsx  # Solana Wallet Bridge management
+│   ├── TabBarContext.tsx                # TabBar visibility state Context
+│   └── SolanaWalletBridgeContext.tsx    # Solana Wallet Bridge management
 ├── navigation/
-│   └── AppNavigator.tsx     # Navigation config + custom icons + TabBar visibility
+│   └── AppNavigator.tsx       # Navigation config + custom icons + TabBar visibility
 ├── screens/
-│   ├── EarnScreen.tsx       # Earn Tab
-│   ├── BorrowScreen.tsx     # Borrow Tab
-│   ├── SwapScreen.tsx       # Swap Tab
-│   ├── MyEarnScreen.tsx     # My Tab
-│   ├── TestScreen.tsx       # Test Tab (URL input for debugging)
-│   └── DetailScreen.tsx     # Detail page (full-screen push)
+│   ├── LaunchScreen.tsx       # Launch screen with progress bar
+│   ├── EarnScreen.tsx         # Earn Tab
+│   ├── BorrowScreen.tsx       # Borrow Tab
+│   ├── SwapScreen.tsx         # Swap Tab
+│   ├── MyEarnScreen.tsx       # My Tab
+│   ├── TestScreen.tsx         # Test Tab (URL input for debugging)
+│   └── DetailScreen.tsx       # Detail page (full-screen push)
 assets/
 ├── tab-icons/
 │   ├── earn.png / earn-active.png
@@ -36,10 +38,17 @@ assets/
 │   ├── swap.png / swap-active.png
 │   ├── my.png / my-active.png
 │   └── test.png / test-active.png
+├── launch/
+│   ├── bg.svg                 # Launch background blob
+│   └── logo.svg               # Launch logo
+├── splash-icon.png            # Full launch screen image (1284x2778)
+├── icon.png                   # App icon (1024x1024)
+└── adaptive-icon.png          # Android adaptive icon (1024x1024)
 web-demo/
-├── index.html               # Bridge usage demo
-├── modal-content.html       # Modal content example
-└── solana-wallet-test.html  # Solana Wallet integration test page
+├── index.html                 # Bridge usage demo
+├── modal-content.html         # Modal content example
+└── solana-wallet-test.html    # Solana Wallet integration test page
+polyfill.js                    # Crypto polyfill for @solana/web3.js
 ```
 
 ## Navigation Architecture
@@ -72,16 +81,28 @@ RheaBridge.refreshDone()
 
 // Control TabBar visibility
 RheaBridge.setTabBarVisible(visible)
+
+// Enable/disable pull-to-refresh (default: disabled)
+RheaBridge.setRefreshEnabled(enabled)
 ```
 
 ### Pull to Refresh
 
+**Default**: Pull-to-refresh is disabled by default. Dapp must explicitly enable it.
+
 ```javascript
+// Enable pull-to-refresh
+RheaBridge.setRefreshEnabled(true);
+
+// Listen to refresh event
 window.addEventListener("rheaRefresh", function () {
   fetchData().then(function () {
     RheaBridge.refreshDone(); // Auto rebound after 5s timeout
   });
 });
+
+// Disable when not needed
+RheaBridge.setRefreshEnabled(false);
 ```
 
 ### Bridge Ready Event
@@ -215,13 +236,21 @@ Icon files in `assets/tab-icons/`, naming convention:
 3. Click "Connect Wallet" should open wallet authorization
 4. Test sign message and transaction functions
 
+## Launch Screen
+
+App uses a unified launch experience:
+- **Splash Screen**: Uses `splash-icon.png` with `#F4F4F4` background
+- **Launch Screen**: Shows same image + animated progress bar
+- **Manual Control**: `SplashScreen.preventAutoHideAsync()` in App.tsx, `hideAsync()` in LaunchScreen
+- **Seamless Transition**: User sees one continuous screen with progress animation
+
 ## Test Tab Usage
 
 The 5th Tab (Test) allows you to:
 1. Enter any URL (local dev server, staging, production)
 2. Click "Load" button
-3. WebView loads the page with Solana Wallet Bridge injected
-4. Perfect for debugging without rebuilding the app
+3. WebView loads the page with full Bridge + Solana Wallet integration
+4. Perfect for debugging dApps without rebuilding the app
 
 ## Dependencies
 
@@ -231,3 +260,13 @@ Core dependencies:
 - `react-native-quick-crypto` - Crypto polyfill for React Native
 - `@solana/web3.js` - Solana JavaScript SDK
 - `expo-dev-client` - Custom development build support
+- `expo-splash-screen` - Manual splash screen control
+
+## Key Features
+
+- **Solana Wallet Integration**: Native MWA support with `window.solanaWallet` API
+- **Pull-to-Refresh Control**: Dapp-controlled refresh (disabled by default)
+- **TabBar Safe Area**: Properly handles device notches and gesture bars
+- **Launch Screen Preloading**: Preloads first tab during launch animation
+- **Test Tab**: Quick URL testing without rebuilding
+- **WebView Bridge**: Bidirectional communication for navigation and modals

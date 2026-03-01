@@ -1,32 +1,59 @@
 # Rhea Mobile
 
-## Project Background
+Rhea Mobile is the native mobile gateway for Rhea Finance, bringing seamless Web3 DeFi experience to mobile users. Built as a hybrid application using Expo and React Native, it provides native navigation with WebView-embedded dApps on Solana.
 
-Rhea Mobile is the native mobile gateway for Rhea Finance, designed to bring our seamless Web3 DeFi experience—including Yield Earning, Borrowing, and Swapping—to iOS and Android users. Built as a hybrid application using Expo and React Native, it enables a smooth fusion between high-performance native navigation and our rich web-based decentralized applications (dApps) on the Solana ecosystem.
+## Key Features
 
-This project is developed for the Solana Hackathon to demonstrate how complex Solana dApps can achieve native-level mobile experiences without duplicating business logic.
+- **🔐 Solana Wallet Integration**: Native Mobile Wallet Adapter support with `window.solanaWallet` API
+- **🌉 WebView Bridge**: Bidirectional communication between native and web
+- **🧪 Test Tab**: Debug any dApp URL without rebuilding
+- **🎨 Unified Launch**: Seamless splash-to-launch screen transition
+- **🔄 Pull-to-Refresh**: Dapp-controlled refresh (disabled by default)
+- **📐 Safe Area**: Proper TabBar spacing for modern devices
 
-## Technical Documentation
+## Tech Stack
 
-Rhea Mobile utilizes a custom lightweight JavaScript Bridge (`RheaBridge`) to seamlessly connect the React Native host with the encapsulated Web dApp.
+- **Expo SDK 54** + React Native 0.81
+- **@wallet-ui/react-native-web3js** - Solana Mobile Wallet Adapter
+- **@react-navigation** - Native navigation
+- **react-native-webview** - Web content rendering
+- **TypeScript** - Type safety
 
-### Architecture
+## Getting Started
 
-- **Framework**: React Native (via Expo)
-- **Routing**: `react-navigation` (Native Stack & Bottom Tabs)
-- **Web Engine**: `react-native-webview`
-- **Bridge Injection**: A transparent JS-bridge injected on runtime to allow the web frontend to communicate with the native device.
+### Prerequisites
 
-### Getting Started
+- Node.js 18+
+- Expo CLI
+- Android device or emulator (requires custom native modules)
 
-1. Install dependencies:
-   \`\`\`bash
-   pnpm install
-   \`\`\`
+### Installation
 
-2. Start the Metro bundler:
-   \`\`\`bash
-   pnpm start
-   \`\`\`
+```bash
+npm install
+```
 
-3. Run on your desired platform (iOS Simulator or Android Emulator) via the Expo CLI prompts.
+### Development
+
+```bash
+# Start dev server
+npx expo start
+
+# Run on Android (requires Expo Dev Client)
+npx expo run:android
+```
+
+**Note**: Cannot use Expo Go due to custom native modules (Solana MWA). Must build development client.
+
+### Build APK
+
+```bash
+# Cloud build via EAS (no local Android SDK required)
+eas build -p android --profile preview
+```
+
+## Documentation
+
+- **[CLAUDE.md](CLAUDE.md)** - Detailed technical documentation
+- **[BUILD.md](BUILD.md)** - Build and deployment guide
+- **[web-demo/](web-demo/)** - Bridge and Wallet API examples

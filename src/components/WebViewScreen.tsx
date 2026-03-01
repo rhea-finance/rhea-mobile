@@ -115,6 +115,11 @@ const INJECTED_BRIDGE_JS = `
     // ---- TabBar Visibility ----
     setTabBarVisible: function(visible) {
       postMsg({ type: 'setTabBarVisible', visible: !!visible });
+    },
+
+    // ---- Refresh Control ----
+    setRefreshEnabled: function(enabled) {
+      postMsg({ type: 'setRefreshEnabled', enabled: !!enabled });
     }
   };
 
@@ -417,6 +422,7 @@ const WebViewScreenInner = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshEnabled, setRefreshEnabled] = useState(false);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewIdRef = useRef(`webview_${Date.now()}_${Math.random()}`);
   const { registerWebView, unregisterWebView, handleWalletRequest } =
@@ -545,6 +551,11 @@ const WebViewScreenInner = (
         return;
       }
 
+      if (data.type === "setRefreshEnabled") {
+        setRefreshEnabled(!!data.enabled);
+        return;
+      }
+
       if (
         data.type &&
         data.type.startsWith("wallet_") &&
@@ -593,13 +604,13 @@ const WebViewScreenInner = (
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            enabled={isTop}
-            tintColor="#6366f1"
-            colors={["#6366f1"]}
-          />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          enabled={isTop && refreshEnabled}
+          tintColor="#6366f1"
+          colors={["#6366f1"]}
+        />
         }
       >
         <WebView
