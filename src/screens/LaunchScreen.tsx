@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated, Dimensions } from "react-native";
 import { Image } from "expo-image";
+import * as SplashScreen from "expo-splash-screen";
 import { useNavigation, StackActions } from "@react-navigation/native";
 import PreloadWebView from "../components/PreloadWebView";
 import { WEB_URLS } from "../config/urls";
@@ -12,12 +13,13 @@ const LaunchScreen = () => {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    SplashScreen.hideAsync();
+    
     Animated.timing(progress, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: false,
     }).start(() => {
-      // Replace current screen with MainTabs after animation
       navigation.dispatch(StackActions.replace("MainTabs"));
     });
   }, [progress, navigation]);
@@ -29,21 +31,12 @@ const LaunchScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Floating Background Blob */}
+      {/* Full Splash Background with Logo */}
       <Image
-        source={require("../../assets/launch/bg.svg")}
-        style={[StyleSheet.absoluteFillObject, { marginLeft: 30, marginRight: 30 }]}
+        source={require("../../assets/splash-icon.png")}
+        style={StyleSheet.absoluteFillObject}
         contentFit="contain"
       />
-
-      {/* Center Logo */}
-      <View style={styles.content}>
-        <Image
-          source={require("../../assets/launch/logo.svg")}
-          style={styles.logo}
-          contentFit="contain"
-        />
-      </View>
 
       {/* Bottom Progress Bar */}
       <View style={styles.progressContainer}>
@@ -67,19 +60,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logo: {
-    width: 200,
-    height: 100,
-  },
   progressContainer: {
     position: "absolute",
     bottom: 80,
     width: width * 0.5,
+    alignSelf: "center",
   },
   progressTrack: {
     height: 6,

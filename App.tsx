@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
 import { MobileWalletProvider } from "@wallet-ui/react-native-web3js";
 import { clusterApiUrl } from "@solana/web3.js";
 import AppNavigator from "./src/navigation/AppNavigator";
+
+SplashScreen.preventAutoHideAsync();
 
 const CHAIN = "solana:mainnet";
 const ENDPOINT = clusterApiUrl("mainnet-beta");
