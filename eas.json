@@ -18,6 +18,11 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "dapp-store": {
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

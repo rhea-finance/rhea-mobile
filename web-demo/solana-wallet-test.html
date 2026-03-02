@@ -153,6 +153,8 @@
       ⚠️ Wallet not connected
     </div>
 
+    <div onclick="openNewPage()">open new page</div>
+
     <div id="walletInfo" style="display: none;" class="wallet-info">
       <label>Public Key:</label>
       <div class="value" id="publicKey">-</div>
@@ -167,6 +169,8 @@
         Disconnect
       </button>
     </div>
+
+
 
     <div class="section">
       <h2>Sign Message</h2>
@@ -227,6 +231,10 @@
         connectBtn.style.display = 'block';
         disconnectBtn.style.display = 'none';
       }
+    }
+
+    function openNewPage() {
+      window.open('/solana-wallet-test.html', '_blank');
     }
 
     async function connectWallet() {

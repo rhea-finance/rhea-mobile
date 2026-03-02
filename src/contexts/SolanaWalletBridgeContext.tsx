@@ -23,6 +23,7 @@ interface SolanaWalletBridgeContextValue {
   registerWebView: (id: string, ref: WebViewRef) => void;
   unregisterWebView: (id: string) => void;
   handleWalletRequest: (request: WalletRequest) => Promise<void>;
+  getCurrentWalletState: () => { publicKey: string | null; connected: boolean };
 }
 
 const SolanaWalletBridgeContext =
@@ -96,6 +97,24 @@ export const SolanaWalletBridgeProvider: React.FC<{
   const handleWalletRequest = useCallback(
     async (request: WalletRequest) => {
       const { type, requestId, data } = request;
+
+      if (type === "wallet_requestState") {
+        const publicKeyStr = account?.address || null;
+        const stateUpdateJS = `
+          (function() {
+            if (window.solanaWallet && window.solanaWallet._updateState) {
+              window.solanaWallet._updateState({
+                publicKey: ${publicKeyStr ? `"${publicKeyStr}"` : "null"},
+                connected: ${!!publicKeyStr},
+                connecting: false
+              });
+            }
+          })();
+          true;
+        `;
+        broadcastToAllWebViews(stateUpdateJS);
+        return;
+      }
 
       const sendResponse = (success: boolean, result?: any, error?: string) => {
         const responseJS = `
@@ -231,10 +250,19 @@ export const SolanaWalletBridgeProvider: React.FC<{
     ],
   );
 
+  const getCurrentWalletState = useCallback(() => {
+    const publicKeyStr = account?.address ? String(account.address) : null;
+    return {
+      publicKey: publicKeyStr,
+      connected: !!publicKeyStr,
+    };
+  }, [account]);
+
   const value: SolanaWalletBridgeContextValue = {
     registerWebView,
     unregisterWebView,
     handleWalletRequest,
+    getCurrentWalletState,
   };
 
   return (
