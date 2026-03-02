@@ -28,7 +28,6 @@ src/
 │   ├── BorrowScreen.tsx       # Borrow Tab
 │   ├── SwapScreen.tsx         # Swap Tab
 │   ├── MyEarnScreen.tsx       # My Tab
-│   ├── TestScreen.tsx         # Test Tab (URL input for debugging)
 │   └── DetailScreen.tsx       # Detail page (full-screen push)
 assets/
 ├── tab-icons/
@@ -253,14 +252,6 @@ App uses a simple startup experience:
 - **Manual Control**: `SplashScreen.preventAutoHideAsync()` in App.tsx, waits 1s then `hideAsync()`
 - **Direct Entry**: After splash, directly enters main tabs interface
 
-## Test Tab Usage
-
-The 5th Tab (Test) allows you to:
-1. Enter any URL (local dev server, staging, production)
-2. Click "Load" button
-3. WebView loads the page with full Bridge + Solana Wallet integration
-4. Perfect for debugging dApps without rebuilding the app
-
 ## Dependencies
 
 Core dependencies:
@@ -277,5 +268,4 @@ Core dependencies:
 - **Pull-to-Refresh Control**: Dapp-controlled refresh (disabled by default)
 - **TabBar Safe Area**: Properly handles device notches and gesture bars
 - **Launch Screen Preloading**: Preloads first tab during launch animation
-- **Test Tab**: Quick URL testing without rebuilding
 - **WebView Bridge**: Bidirectional communication for navigation and modals

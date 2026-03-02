@@ -11,7 +11,6 @@ import EarnScreen from "../screens/EarnScreen";
 import BorrowScreen from "../screens/BorrowScreen";
 import SwapScreen from "../screens/SwapScreen";
 import MyEarnScreen from "../screens/MyEarnScreen";
-import TestScreen from "../screens/TestScreen";
 import DetailScreen from "../screens/DetailScreen";
 import PreloadWebView from "../components/PreloadWebView";
 import { WEB_URLS } from "../config/urls";
@@ -43,16 +42,10 @@ type MyEarnStackParamList = {
   Detail: DetailParams;
 };
 
-type TestStackParamList = {
-  TestMain: undefined;
-  Detail: DetailParams;
-};
-
 const EarnStackNav = createNativeStackNavigator<EarnStackParamList>();
 const BorrowStackNav = createNativeStackNavigator<BorrowStackParamList>();
 const SwapStackNav = createNativeStackNavigator<SwapStackParamList>();
 const MyEarnStackNav = createNativeStackNavigator<MyEarnStackParamList>();
-const TestStackNav = createNativeStackNavigator<TestStackParamList>();
 
 const Tab = createBottomTabNavigator();
 
@@ -85,10 +78,6 @@ const TAB_ICONS: Record<string, { default: any; active: any }> = {
   My: {
     default: require("../../assets/tab-icons/my.png"),
     active: require("../../assets/tab-icons/my-active.png"),
-  },
-  Test: {
-    default: require("../../assets/tab-icons/test.png"),
-    active: require("../../assets/tab-icons/test-active.png"),
   },
 };
 
@@ -137,18 +126,6 @@ function MyEarnStack() {
         options={{ headerShown: false }}
       />
     </MyEarnStackNav.Navigator>
-  );
-}
-
-function TestStack() {
-  return (
-    <TestStackNav.Navigator screenOptions={stackScreenOptions}>
-      <TestStackNav.Screen
-        name="TestMain"
-        component={TestScreen}
-        options={{ headerShown: false }}
-      />
-    </TestStackNav.Navigator>
   );
 }
 
@@ -241,15 +218,6 @@ function AppTabs() {
           options={{
             tabBarIcon: ({ focused }) => (
               <TabIcon label="My" focused={focused} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Test"
-          component={TestStack}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label="Test" focused={focused} />
             ),
           }}
         />
