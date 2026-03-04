@@ -1,6 +1,6 @@
 export const WEB_URLS = {
-  EARN: "https://top.app.rhea.finance/supply",
-  BORROW: "https://top.app.rhea.finance/borrow",
-  SWAP: "https://top.app.rhea.finance/trade",
-  MY_EARN: "https://top.app.rhea.finance/my",
+  EARN: "https://solh5.rhea.finance/supply",
+  BORROW: "https://solh5.rhea.finance/borrow",
+  SWAP: "https://solh5.rhea.finance/trade",
+  MY_EARN: "https://solh5.rhea.finance/my",
 };
