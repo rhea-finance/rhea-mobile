@@ -14,6 +14,7 @@ import MyEarnScreen from "../screens/MyEarnScreen";
 import DetailScreen from "../screens/DetailScreen";
 import PreloadWebView from "../components/PreloadWebView";
 import { WEB_URLS } from "../config/urls";
+import $$deepFreezeAndThrowOnMutationInDev from "react-native/types_generated/Libraries/Utilities/deepFreezeAndThrowOnMutationInDev";
 
 type DetailParams = { url: string; title: string; callbackId?: string };
 
@@ -63,7 +64,7 @@ const stackScreenOptions = {
 
 // Tab Icon Mapping
 const TAB_ICONS: Record<string, { default: any; active: any }> = {
-  Earn: {
+  Supply: {
     default: require("../../assets/tab-icons/earn.png"),
     active: require("../../assets/tab-icons/earn-active.png"),
   },
@@ -71,7 +72,7 @@ const TAB_ICONS: Record<string, { default: any; active: any }> = {
     default: require("../../assets/tab-icons/borrow.png"),
     active: require("../../assets/tab-icons/borrow-active.png"),
   },
-  Swap: {
+  Trade: {
     default: require("../../assets/tab-icons/swap.png"),
     active: require("../../assets/tab-icons/swap-active.png"),
   },
@@ -186,11 +187,11 @@ function AppTabs() {
         }}
       >
         <Tab.Screen
-          name="Earn"
+          name="Supply"
           component={EarnStack}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label="Earn" focused={focused} />
+              <TabIcon label="Supply" focused={focused} />
             ),
           }}
         />
@@ -204,11 +205,11 @@ function AppTabs() {
           }}
         />
         <Tab.Screen
-          name="Swap"
+          name="Trade"
           component={SwapStack}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label="Swap" focused={focused} />
+              <TabIcon label="Trade" focused={focused} />
             ),
           }}
         />
